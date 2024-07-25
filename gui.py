@@ -10,11 +10,6 @@ import textext
 
 import icon
 
-
-#TODO: EXPERIMENTAL
-fogEnabled = False
-
-
 class HexaCanvas(Canvas):
     """ A canvas that provides a create-hexagone method """
     def __init__(self, master, *args, **kwargs):
@@ -135,12 +130,12 @@ class HexagonalGrid(HexaCanvas):
         self.height = pxHeight 
         self.hexaSize = scale *0.6
         #self.loadImage(None)
+    
 
-    def loadImage(self, image):
-
-        #image = Image.open("images/test.png")
-        new_height = self.gridHeight*int(self.hexaSize*1.66)
-        new_width =  self.gridWidth*int(self.hexaSize*1.66)
+    def loadImage(self, imageFile):
+        image = Image.open(imageFile)
+        new_height = self.gridHeight*int((1+self.hexaSize)*1.66)
+        new_width =  self.gridWidth*int((1+self.hexaSize)*1.66)
 
         old_width, old_height = image.size
         # if new_width/old_width < new_height/old_height is mathematically the same as
@@ -151,16 +146,12 @@ class HexagonalGrid(HexaCanvas):
             # reduce width to keep original aspect ratio
             new_width = max(1, old_width * new_height // old_height)
 
-
-
         image = image.resize((new_width, new_height), Image.LANCZOS)
-        imageFile = ImageTk.PhotoImage(image)
+        imagetk = ImageTk.PhotoImage(image)        
 
-        
-
-        self.image = imageFile
-        self.create_image(self.winfo_width()//2, self.winfo_height()//2, anchor=CENTER, image=imageFile, tags="bg_img")
-
+        self.image = imagetk
+        img = self.create_image(self.winfo_width()//2-self.hexaSize//2, self.winfo_height()//2, anchor=CENTER, image=imagetk, tags="bg_img")
+        self.tag_lower(img)
 
     def cubeToOffset(self, q, r, s):
         col = q + (r - (r&1)) / 2
@@ -238,6 +229,9 @@ class MainWindow(Tk):
     def initUI(self):
         self.title("Hexmapper")
 
+        self.fogEnabled = BooleanVar()
+        self.fogEnabled.set(False)
+
         self.columnconfigure(0, weight=1)
         self.columnconfigure(1, weight=15)
         self.rowconfigure(0, weight=1)
@@ -251,6 +245,11 @@ class MainWindow(Tk):
         fileMenu.add_command(label="Load HXM...", command=self.onLoad)
         fileMenu.add_command(label="Exit", command=self.onExit)
         menubar.add_cascade(label="File", menu=fileMenu)
+
+        mapMenu = Menu(menubar, tearoff=False)
+        mapMenu.add_command(label="Add Image...", command=self.loadImage)
+        mapMenu.add_checkbutton(label="Fog of War", variable=self.fogEnabled, command=self.toggleFog)
+        menubar.add_cascade(label="Map", menu=mapMenu)
         
         
 
@@ -297,6 +296,23 @@ class MainWindow(Tk):
         self.hexNotes.set(hex.getNotes())
         self.hexCoord.set(str(hex.getCoordStr()))
         
+    def toggleFog(self):
+        for hex in self.hxm.getHexes():
+            coord = hex.getCoord()
+            poly = self.hexmap.polys[coord]
+
+            if self.fogEnabled.get():
+                print("fog on")
+                #TODO: EXPERIMENTAL
+                if(hex.getVisibility() == "hidden"):
+                    self.hexmap.itemconfig(poly, fill="black", stipple="")
+                elif(hex.getVisibility() == "fogged"):
+                    self.hexmap.itemconfig(poly, fill="black", stipple="gray75")
+                else:
+                    self.hexmap.itemconfig(poly, fill="", stipple="")
+            else:
+                print("fog off")
+                self.hexmap.itemconfig(poly, fill="", stipple="")
 
     def saveNotes(self):
         print("savey")
@@ -309,7 +325,7 @@ class MainWindow(Tk):
 
     def onClickHex(self, event):
         self.saveNotes()
-        if fogEnabled:
+        if self.fogEnabled.get():
             self.hxm.revealNeighbors(self.getClickedHex())
         self.updateHex()
         self.redrawHexmap()
@@ -326,7 +342,7 @@ class MainWindow(Tk):
             initialdir='hexmaps/',
             filetypes=filetypes)
 
-        return filename
+        return filename+".hxm"
 
     def open_file(self):
         filetypes = (
@@ -340,6 +356,25 @@ class MainWindow(Tk):
             filetypes=filetypes)
 
         return filename
+
+    def open_image(self):
+        filetypes = (
+            ('PNG files', '*.png'),
+            ('JPEG files', '*.jpg *.jpeg'),
+            ('All files', '*.*')
+        )
+
+        filename = fd.askopenfilename(
+            title='Open a file',
+            initialdir='images/',
+            filetypes=filetypes)
+
+        return filename
+
+    def loadImage(self):
+        imageFile = self.open_image()
+        self.hexmap.loadImage(imageFile)
+        self.hxm.loadImage(imageFile)
 
     def newHXM(self):
         create = False
@@ -389,7 +424,7 @@ class MainWindow(Tk):
         self.hexmap.setGridSize(height, width)
 
         for hex in self.hxm.getHexes():
-            if fogEnabled:
+            if self.fogEnabled.get():
                 #TODO: EXPERIMENTAL
                 if(hex.getVisibility() == "hidden"):
                     self.hexmap.setCell(*hex.getCoord(),fill="black", stipple=None)
@@ -428,7 +463,7 @@ class MainWindow(Tk):
         selPoly = self.hexmap.polys[selCoord]
         oldPoly = self.hexmap.polys[oldCoord]
 
-        if(fogEnabled):
+        if(self.fogEnabled.get()):
             neighborCoords = selHex.getNeighbors()
 
             for coord in neighborCoords:

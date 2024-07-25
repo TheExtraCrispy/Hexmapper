@@ -102,6 +102,9 @@ class hxm:
     def getHexes(self):
         return self.grid.values()
     
+    def loadImage(self, imageFile):
+        image = Image.open("images/test.png")
+        self.image = image
     
 
     def revealNeighbors(self, hex):
