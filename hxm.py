@@ -132,7 +132,7 @@ class hxm:
 
 def save_hxm(name, data):
     #Saves provided data to an HXM file of the given name
-    file = open(f'{name}.hxm', 'wb')
+    file = open(name, 'wb')
     pickle.dump(data, file)
     file.close()
 
@@ -172,7 +172,7 @@ def buildNewHXM(width, height):
 def build_test_hxm(name):
     test = hxm(name, 3, 3)
     test.grid = build_test_grid()
-    test.image = Image.open("images/test.png")
+    #test.image = Image.open("images/test.png")
 
     return test
 

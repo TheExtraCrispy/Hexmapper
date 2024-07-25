@@ -8,6 +8,8 @@ import math
 import hxm
 import textext
 
+import icon
+
 
 #TODO: EXPERIMENTAL
 fogEnabled = False
@@ -132,11 +134,11 @@ class HexagonalGrid(HexaCanvas):
         self.width = pxWidth
         self.height = pxHeight 
         self.hexaSize = scale *0.6
-        self.loadImage(None)
+        #self.loadImage(None)
 
     def loadImage(self, image):
 
-        image = Image.open("images/test.png")
+        #image = Image.open("images/test.png")
         new_height = self.gridHeight*int(self.hexaSize*1.66)
         new_width =  self.gridWidth*int(self.hexaSize*1.66)
 
@@ -231,6 +233,7 @@ class MainWindow(Tk):
         super().__init__()
 
         self.initUI()
+        icon.loadIcon(self)
 
     def initUI(self):
         self.title("Hexmapper")
