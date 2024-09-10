@@ -132,8 +132,7 @@ class HexagonalGrid(HexaCanvas):
         #self.loadImage(None)
     
 
-    def loadImage(self, imageFile):
-        image = Image.open(imageFile)
+    def loadImage(self, image):
         new_height = self.gridHeight*int((1+self.hexaSize)*1.66)
         new_width =  self.gridWidth*int((1+self.hexaSize)*1.66)
 
@@ -211,7 +210,7 @@ class HexagonalGrid(HexaCanvas):
         else:
             s = -q-r
 
-        cubeCoord = (q, r, s)
+        cubeCoord = (int(q), int(r), int(s))
         
         self.oldHex = self.selectedHex
         self.selectedHex=(cubeCoord)
@@ -247,8 +246,9 @@ class MainWindow(Tk):
         menubar.add_cascade(label="File", menu=fileMenu)
 
         mapMenu = Menu(menubar, tearoff=False)
-        mapMenu.add_command(label="Add Image...", command=self.loadImage)
+        mapMenu.add_command(label="Add Image...", command=self.loadNewImage)
         mapMenu.add_checkbutton(label="Fog of War", variable=self.fogEnabled, command=self.toggleFog)
+        mapMenu.add_command(label="Refog Map", command=self.refogMap)
         menubar.add_cascade(label="Map", menu=mapMenu)
         
         
@@ -371,10 +371,11 @@ class MainWindow(Tk):
 
         return filename
 
-    def loadImage(self):
+    def loadNewImage(self):
         imageFile = self.open_image()
-        self.hexmap.loadImage(imageFile)
-        self.hxm.loadImage(imageFile)
+        image = Image.open(imageFile)
+        self.hexmap.loadImage(image)
+        self.hxm.setImage(image)
 
     def newHXM(self):
         create = False
@@ -423,6 +424,10 @@ class MainWindow(Tk):
         height = self.hxm.getHeight()
         self.hexmap.setGridSize(height, width)
 
+        image = self.hxm.getImage()
+        if image != None:
+            self.hexmap.loadImage(image)
+
         for hex in self.hxm.getHexes():
             if self.fogEnabled.get():
                 #TODO: EXPERIMENTAL
@@ -444,7 +449,23 @@ class MainWindow(Tk):
         self.redrawHexmap()
     
 
-    
+    def drawFog(self):
+        for hex in self.hxm.getHexes():
+            if self.fogEnabled.get():
+                #TODO: EXPERIMENTAL
+                if(hex.getVisibility() == "hidden"):
+                    self.hexmap.setCell(*hex.getCoord(),fill="black", stipple=None)
+                elif(hex.getVisibility() == "fogged"):
+                    self.hexmap.setCell(*hex.getCoord(),fill="black", stipple="gray75")
+                else:
+                    self.hexmap.setCell(*hex.getCoord(),fill=None, stipple=None)
+
+
+    def refogMap(self):
+        for hex in self.hxm.getHexes():
+            hex.setVisibility("hidden")
+        if self.fogEnabled.get():
+            self.loadHXM(self.hxm)
 
     def redrawHexmap(self):
         
@@ -467,12 +488,13 @@ class MainWindow(Tk):
             neighborCoords = selHex.getNeighbors()
 
             for coord in neighborCoords:
-                print("trying")
-                neighbor = self.hxm.getHex(coord)
-                print(neighbor.getVisibility())
-                if(neighbor.getVisibility() == "fogged"):
-                    neighborPoly = self.hexmap.polys[coord]
-                    self.hexmap.itemconfig(neighborPoly, fill="black", stipple="gray75")
+                if(coord in self.hxm.grid.keys()):
+                    print("trying")
+                    neighbor = self.hxm.getHex(coord)
+                    print(neighbor.getVisibility())
+                    if(neighbor.getVisibility() == "fogged"):
+                        neighborPoly = self.hexmap.polys[coord]
+                        self.hexmap.itemconfig(neighborPoly, fill="black", stipple="gray75")
 
         self.hexmap.itemconfig(oldPoly, fill=oldHex.color, stipple=selHex.stipple)
         self.hexmap.itemconfig(selPoly, fill=selHex.color, stipple=selHex.stipple)

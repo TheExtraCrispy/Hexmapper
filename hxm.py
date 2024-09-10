@@ -102,8 +102,10 @@ class hxm:
     def getHexes(self):
         return self.grid.values()
     
-    def loadImage(self, imageFile):
-        image = Image.open("images/test.png")
+    def getImage(self):
+        return self.image
+
+    def setImage(self, image):
         self.image = image
     
 
@@ -112,10 +114,11 @@ class hxm:
         hex.setVisibility("explored")
 
         for coord in neighborCoords:
-            neighbor = self.getHex(coord)
+            if coord in self.grid.keys():
+                neighbor = self.getHex(coord)
 
-            if(neighbor.getVisibility() == "hidden"):
-                neighbor.setVisibility("fogged")
+                if(neighbor.getVisibility() == "hidden"):
+                    neighbor.setVisibility("fogged")
 
 
     def addHex(self, coord, name=None, notes=None, color="grey", stipple="grey25"):
